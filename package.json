@@ -1,0 +1,14 @@
+{
+  "name": "migradorplaylists",
+  "version": "1.0.0",
+  "description": "A simple script to migrate playlists from Deezer to Spotify",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "author": "Rafael Nunes Santana",
+  "license": "MIT",
+  "dependencies": {
+    "axios": "^0.19.2"
+  }
+}
