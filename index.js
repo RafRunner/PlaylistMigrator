@@ -9,10 +9,10 @@ const Spotify = require('./src/spotify/Spotify');
   const deezer = new Deezer(deezerSecrets);
   const spotify = new Spotify(spotifySecrets);
 
-  const [deezerPlaylists] = await deezer.getUserPlaylists();
+  const deezerPlaylists = await deezer.getUserPlaylists();
   const spotifyPlaylists = await spotify.getUserPlaylists();
 
-  for (const playlist of [deezerPlaylists]) {
+  for (const playlist of deezerPlaylists) {
     const spotifyTracks = await spotify.mapDeezerTracksToSpotify(playlist.tracks);
 
     if (playlist.title === 'Loved Tracks') {
