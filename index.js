@@ -14,14 +14,14 @@ const Spotify = require('./src/spotify/Spotify');
 
   for (const playlist of deezerPlaylists) {
     const spotifyTracks = await spotify.mapDeezerTracksToSpotify(playlist.tracks);
+    console.log(spotifyTracks);
+    console.log('Adding ' + spotifyTracks.length + ' songs to ' + playlist.title);
 
     if (playlist.title === 'Loved Tracks') {
       console.log(playlist);
       await spotify.addTracksToSavedTracks(spotifyTracks);
       return;
     }
-
-    console.log(spotifyTracks);
 
     let equivalentSpotifyPlaylist = spotifyPlaylists.find((p) => p.name === playlist.title);
     if (!equivalentSpotifyPlaylist) {

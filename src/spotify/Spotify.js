@@ -45,7 +45,7 @@ class Spotify {
           offset,
         })
       ).data;
-      return { total: rawTracks.total, trackIds: rawTracks.items.map((t) => t.track.id) };
+      return { total: rawTracks.total, trackIds: rawTracks.items.map((t) => (t.track.linked_from || t.track).id) };
     };
 
     let partialResponse = { total: 1, trackIds: [] };
@@ -62,25 +62,14 @@ class Spotify {
     const trackIds = [];
 
     for (const dt of deezerTracks) {
-      const normalizedTitleAndArtist = `${dt.title}+${dt.artist}`
-        .replace(/ /g, '+')
-        .normalize('NFD')
-        .replace(/[\u0300-\u036f]/g, '');
+      const titleWithoutEndParentheses = (dt.title.match(/^[^(]+/g) || [dt.title])[0];
 
-      const searchTerm = (normalizedTitleAndArtist.match(/^[^(]+/g) || [normalizedTitleAndArtist])[0];
+      const searchTerm = encodeURIComponent(`${titleWithoutEndParentheses} ${dt.artist}`);
+      const searchURL = `/v1/search?q=${searchTerm}&type=track&market=BR&limit=1`;
 
       const rawSearchResults = await this.axios
-        .get(`/v1/search?q=${searchTerm}&type=track&market=BR&limit=1`)
-        .catch((e) =>
-          console.log(
-            'Error fetching track: ' +
-              JSON.stringify(dt) +
-              '\nError: ' +
-              e +
-              '\nRequest: ' +
-              `/v1/search?q=${searchTerm}&type=track&market=BR&limit=1\n`
-          )
-        );
+        .get(searchURL)
+        .catch((e) => console.log('Error fetching track: ' + JSON.stringify(dt) + '\nError: ' + e + '\nRequest: ' + searchURL));
 
       if (!rawSearchResults) {
         continue;
@@ -92,7 +81,7 @@ class Spotify {
         console.log('No candidate for: "' + JSON.stringify(dt) + '" was not found on spotify, it will need to be added manualy\n');
         continue;
       }
-      trackIds.push(track.id);
+      trackIds.push((track.linked_from || track).id);
     }
 
     return trackIds;
