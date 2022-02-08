@@ -5,7 +5,7 @@ const axios = require('axios');
 class Spotify {
   constructor(spotifySecrets) {
     this.axios = axios.create({
-      baseURL: 'https://api.spotify.com',
+      baseURL: 'https://api.spotify.com/v1',
       headers: {
         Accept: 'application/json',
         'Content-Type': 'application/json',
@@ -15,23 +15,35 @@ class Spotify {
     this.spotifySecrets = spotifySecrets;
   }
 
+  async getUserPlaylistsWithTracks() {
+    const playlists = await this.getUserPlaylists();
+    await this.loadTracksPerPlaylist(playlists);
+
+    return playlist;
+  }
+
   async getUserPlaylists() {
-    const rawPlaylist = (await this.axios.get('/v1/me/playlists')).data.items;
-    return Promise.all(
-      rawPlaylist.map(async (p) => {
-        return {
-          id: p.id,
-          href: p.href,
-          name: p.name,
-          tracks_href: p.tracks.href,
-          tracks: await this.getPlaylistTracks(p.tracks.href),
-        };
-      })
-    );
+    const rawPlaylist = (await this.axios.get('/me/playlists')).data.items;
+    rawPlaylist.map(async (p) => {
+      return {
+        id: p.id,
+        href: p.href,
+        name: p.name,
+        tracks_href: p.tracks.href,
+        tracks: null,
+      };
+    });
+  }
+
+  async loadTracksPerPlaylist(playlists) {
+    for (const p of playlists) {
+      const tracks = await this.getPlaylistTracks(p);
+      p.tracks = tracks;
+    }
   }
 
   async getUserSavedTracks() {
-    return { tracks: await this.getPlaylistTracks('/v1/me/tracks', 50) };
+    return { tracks: await this.getPlaylistTracks('/me/tracks', 50) };
   }
 
   async getPlaylistTracks(tracks_href, limit = 100) {
@@ -39,22 +51,22 @@ class Spotify {
     let trackIds = [];
 
     const partialRequest = async (offset) => {
-      const rawTracks = (
-        await this.axios.get(tracks_href, {
-          limit,
-          offset,
-        })
-      ).data;
-      return { total: rawTracks.total, trackIds: rawTracks.items.map((t) => (t.track.linked_from || t.track).id) };
+      const rawTracks = (await this.axios.get(tracks_href, { limit, offset, })).data;
+
+      return { 
+        total: rawTracks.total,
+        trackIds: rawTracks.items.map((t) => (t.track.linked_from || t.track).id)
+      };
     };
 
-    let partialResponse = { total: 1, trackIds: [] };
+    let partialResponse = { total: 0, trackIds: [] };
 
     while (partialResponse.total > trackIds.length) {
       offset += limit;
       partialResponse = await partialRequest(offset);
       trackIds = trackIds.concat(partialResponse.trackIds);
     }
+
     return trackIds;
   }
 
@@ -65,7 +77,7 @@ class Spotify {
       const titleWithoutEndParentheses = (dt.title.match(/^[^(]+/g) || [dt.title])[0];
 
       const searchTerm = encodeURIComponent(`${titleWithoutEndParentheses} ${dt.artist}`);
-      const searchURL = `/v1/search?q=${searchTerm}&type=track&market=BR&limit=1`;
+      const searchURL = `/search?q=${searchTerm}&type=track&market=BR&limit=1`;
 
       const rawSearchResults = await this.axios
         .get(searchURL)
@@ -88,11 +100,7 @@ class Spotify {
   }
 
   async createPlaylist(deezerPlaylist) {
-    const rawPostResponse = (
-      await this.axios.post(`/v1/users/${this.spotifySecrets.user_id}/playlists`, {
-        name: deezerPlaylist.title,
-      })
-    ).data;
+    const rawPostResponse = (await this.axios.post(`/users/${this.spotifySecrets.user_id}/playlists`, { name: deezerPlaylist.title, })).data;
 
     return {
       id: rawPostResponse.id,
@@ -126,7 +134,7 @@ class Spotify {
     const spotifySongURIs = this.buildTracksQuerryParam(playlist, trackIds, 'spotify:track:', 100);
 
     for (const idBatch of spotifySongURIs) {
-      await this.axios.post(`/v1/playlists/${playlist.id}/tracks?uris=${idBatch}`);
+      await this.axios.post(`/playlists/${playlist.id}/tracks?uris=${idBatch}`);
     }
   }
 
@@ -135,7 +143,7 @@ class Spotify {
     const spotifySongURIs = this.buildTracksQuerryParam(savedTracks, trackIds, '', 50);
 
     for (const idBatch of spotifySongURIs) {
-      await this.axios.put(`/v1/me/tracks?ids=${idBatch}`);
+      await this.axios.put(`/me/tracks?ids=${idBatch}`);
     }
   }
 }

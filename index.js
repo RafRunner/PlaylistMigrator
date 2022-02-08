@@ -9,26 +9,9 @@ const Spotify = require('./src/spotify/Spotify');
   const deezer = new Deezer(deezerSecrets);
   const spotify = new Spotify(spotifySecrets);
 
-  const deezerPlaylists = await deezer.getUserPlaylists();
-  const spotifyPlaylists = await spotify.getUserPlaylists();
+  const deezerPlaylists = await deezer.getUserPlaylistsWithTracks();
+  const spotifyPlaylists = await spotify.getUserPlaylistsWithTracks();
 
-  for (const playlist of deezerPlaylists) {
-    const spotifyTracks = await spotify.mapDeezerTracksToSpotify(playlist.tracks);
-    console.log(spotifyTracks);
-    console.log('Adding ' + spotifyTracks.length + ' songs to ' + playlist.title);
-
-    if (playlist.title === 'Loved Tracks') {
-      console.log(playlist);
-      await spotify.addTracksToSavedTracks(spotifyTracks);
-      return;
-    }
-
-    let equivalentSpotifyPlaylist = spotifyPlaylists.find((p) => p.name === playlist.title);
-    if (!equivalentSpotifyPlaylist) {
-      equivalentSpotifyPlaylist = await spotify.createPlaylist(playlist);
-    }
-    console.log(equivalentSpotifyPlaylist);
-
-    await spotify.addTracksToPlaylist(equivalentSpotifyPlaylist, spotifyTracks);
-  }
+  console.log(deezerPlaylists)
+  console.log(spotifyPlaylists);
 })();

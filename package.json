@@ -9,6 +9,6 @@
   "author": "Rafael Nunes Santana",
   "license": "MIT",
   "dependencies": {
-    "axios": "^0.19.2"
+    "axios": "^0.25.0"
   }
 }

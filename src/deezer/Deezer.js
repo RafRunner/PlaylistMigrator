@@ -10,31 +10,31 @@ class Deezer {
     this.deezerSecrets = deezerSecrets;
   }
 
+  async getUserPlaylistsWithTracks() {
+    const playlists = await this.getUserPlaylists();
+    await this.loadTracksPerPlaylist(playlists);
+
+    return playlists;
+  }
+
   async getUserPlaylists() {
     const rawPlaylistData = (await this.axios.get(`/user/${this.deezerSecrets.user_id}/playlists`)).data.data;
-    const playlists = rawPlaylistData.map((p) => {
+    return rawPlaylistData.map((p) => {
       return {
         id: p.id,
         title: p.title.normalize('NFD').replace(/[\u0300-\u036f]/g, ''),
         tracklist: p.tracklist,
         nb_tracks: p.nb_tracks,
+        tracks: null,
       };
     });
-
-    return this.getTracksPerPlaylist(playlists);
   }
 
-  async getTracksPerPlaylist(playlists) {
-    return Promise.all(
-      playlists.map(async (p) => {
-        const tracks = await this.getPlaylistTracks(p);
-
-        return {
-          ...p,
-          tracks: tracks,
-        };
-      })
-    );
+  async loadTracksPerPlaylist(playlists) {
+    for (const p of playlists) {
+      const tracks = await this.getPlaylistTracks(p);
+      p.tracks = tracks;
+    }
   }
 
   async getPlaylistTracks(playlist) {
